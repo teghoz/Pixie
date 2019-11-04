@@ -165,8 +165,21 @@ class PayPalHandler{
         console.log("params: "+ params);
         console.log("params str: "+ JSON.stringify(params));
     }  
-    async trackSellerStatus(){
+    saveOnBoardingDetails(obj){
+        //handle the saving login
+    }
+    async trackSellerStatus(partner_merchant_id, seller_merchant_id){
+        const token = await this.getAccessToken(this.clientId, this.secret);
+        const response = await fetch(`https://api.sandbox.paypal.com/v1/customer/partners/${partner_merchant_id}/merchant-integrations/${seller_merchant_id}`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            method: "GET"
+        });
 
+        return await response.json();
     }
 }
 
