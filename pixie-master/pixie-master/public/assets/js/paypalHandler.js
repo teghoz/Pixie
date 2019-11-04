@@ -16,6 +16,7 @@ class PayPalHandler{
         this.setElements();              
         this.bindUIActions();
         this.preparePayPalConnectButton(this.btnConnectPayPal);
+        this.getFinalOnBoardDetailsFromUrl();
     }
     //binds all UI events
     bindUIActions(){
@@ -28,8 +29,18 @@ class PayPalHandler{
         });
     }
     async preparePayPalConnectButton(button){
-        const response = await this.PartnerReferral("EX12345");
-        button.attr("href", response.links[1].href);
+        
+        if(this.checkifSellerisAlreadyOnBoarded() === false){
+            const baseUrl = `${window.location.protocol}//${window.location.host}`;
+            const returnUrl = window.location; 
+            const response = await this.partnerReferral("EX12345", returnUrl, baseUrl);
+            button.attr("href", response.links[1].href);
+        } 
+        else{
+            //show different button
+            button.html("Connected!");
+        }     
+        
     }
     async getAccessToken(clientId, secret){
         const keyCombination = `${clientId}:${secret}`;
@@ -50,12 +61,19 @@ class PayPalHandler{
 
         return await response.json();
     }
-    async PartnerReferral(trackingId){
+    async partnerReferral(trackingId, returnUrl, baseUrl){
         const token = await this.getAccessToken(this.clientId, this.secret);
         console.log("token: ", token.access_token);
 
         var obj = {
             "tracking_id": trackingId,
+            "partner_config_override": {
+                "partner_logo_url": "https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg",
+                "return_url": returnUrl.toString(),
+                "return_url_description": "the url to return the merchant after the paypal onboarding process.",
+                "action_renewal_url": baseUrl + "/renew-exprired-url",
+                "show_add_credit_card": true
+            },
             "operations": [
                 {
                     "operation": "API_INTEGRATION",
@@ -64,12 +82,12 @@ class PayPalHandler{
                         "integration_method": "PAYPAL",
                         "integration_type": "THIRD_PARTY",
                         "third_party_details": {
-                        "features": [
-                            "PAYMENT",
-                            "REFUND",
-                            "PARTNER_FEE",
-                            "DELAY_FUNDS_DISBURSEMENT"
-                        ]
+                            "features": [
+                                "PAYMENT",
+                                "REFUND",
+                                "PARTNER_FEE",
+                                "DELAY_FUNDS_DISBURSEMENT"
+                            ]
                         }
                     }
                     }
@@ -97,7 +115,57 @@ class PayPalHandler{
 
         return await response.json();
     }
-    async TrackSellerStatus(){
+    getUrlParams(url){
+        var queryString = url ? url.split('?')[1] : window.location.search.slice(1);
+        var obj = {};
+
+        if (queryString) {
+            queryString = queryString.split('#')[0];
+            var arr = queryString.split('&');
+
+            for (var i = 0; i < arr.length; i++) {
+                var a = arr[i].split('=');
+                var paramName = a[0];
+                var paramValue = typeof a[1] === 'undefined' ? true : a[1];
+
+                paramName = paramName.toLowerCase();
+                if (typeof paramValue === 'string') paramValue = paramValue.toLowerCase();
+
+                if (paramName.match(/\[(\d+)?\]$/)) {
+                    var key = paramName.replace(/\[(\d+)?\]/, '');
+                    if (!obj[key]) obj[key] = [];
+
+                    if (paramName.match(/\[\d+\]$/)) {
+                        var index = /\[(\d+)\]/.exec(paramName)[1];
+                        obj[key][index] = paramValue;
+                    } else {
+                        obj[key].push(paramValue);
+                    }
+                } 
+                else {
+                    if (!obj[paramName]) {
+                        obj[paramName] = paramValue;
+                    } else if (obj[paramName] && typeof obj[paramName] === 'string') {
+                        obj[paramName] = [obj[paramName]];
+                        obj[paramName].push(paramValue);
+                    } else {
+                        obj[paramName].push(paramValue);
+                    }
+                }
+            }
+        }
+
+	    return obj;
+    }
+    checkifSellerisAlreadyOnBoarded(){
+        return false;
+    }
+    getFinalOnBoardDetailsFromUrl(){
+        const params = this.getUrlParams(window.location.href);
+        console.log("params: "+ params);
+        console.log("params str: "+ JSON.stringify(params));
+    }  
+    async trackSellerStatus(){
 
     }
 }
