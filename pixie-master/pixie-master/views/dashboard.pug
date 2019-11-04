@@ -199,7 +199,7 @@ block content
           .right-content
             .container
               .main-button
-                a(href='#') Connect with PayPal
+                a(id='payPalConnect') Connect with PayPal
 
         .col-md-12
           .section-heading
@@ -221,6 +221,7 @@ block content
   script(src='/assets/js/isotope.js')
   script(src='/assets/js/flex-slider.js')
   script(src='/assets/js/dashboard.js')
+  script(src='/assets/js/payPalHandler.js')
   script.
     var user_id = '#{user._id}';
   script(language='text/Javascript').
