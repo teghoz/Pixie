@@ -1,3 +1,4 @@
 {
-    "jshint.options": {"esversion": 6}
+    "jshint.options": {"esversion": 9},
+    "jshintConfig": { "esversion": 8, "strict": "implied", "devel": true, "node": true, "globals": {} }
 }
