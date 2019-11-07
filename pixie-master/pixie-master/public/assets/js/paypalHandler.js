@@ -9,14 +9,14 @@ class PayPalHandler{
         //not to be added here in production
         this.clientId = "AUwU6WMN2a0ht5sLrUSkeSI0dSWnM4m11ERLZrBR0SXXYc44sOxwGOFH3mcU3D2F0mNNG4Oh5ytdTf1q";
         this.secret = "EMaTBwFThJUCTKV18kaYWol9qv1uMuoO0LZ2vH0V-2SSnDwcJNTGHHvgvJnsjH_nXAuAHTV-RfPpyPfM";
+        this.payPalPartnerMerchantId = "KW3M9R5XA3L3G";
     }
     //entry point of class
     init(){
         this.setProperties();
         this.setElements();              
         this.bindUIActions();
-        this.preparePayPalConnectButton(this.btnConnectPayPal);
-        this.getFinalOnBoardDetailsFromUrl();
+        this.preparePayPalConnectButton(this.btnConnectPayPal);      
     }
     //binds all UI events
     bindUIActions(){
@@ -29,16 +29,32 @@ class PayPalHandler{
         });
     }
     async preparePayPalConnectButton(button){
-        
-        if(this.checkifSellerisAlreadyOnBoarded() === false){
-            const baseUrl = `${window.location.protocol}//${window.location.host}`;
-            const returnUrl = window.location; 
-            const response = await this.partnerReferral("EX12345", returnUrl, baseUrl);
-            button.attr("href", response.links[1].href);
+        const token = await this.getAccessToken(this.clientId, this.secret);
+        const urlParams = new URLSearchParams(window.location.search);
+        const sellerId = button.data("userid");
+        const onBoardingDetail = await this.checkIfSellerIsAlreadyOnBoarded(sellerId);
+        console.log("onBoardingDetail.permissionsGranted: ", onBoardingDetail.permissionsGranted);
+
+        if(Object.keys(onBoardingDetail).length === 0 || onBoardingDetail.permissionsGranted === undefined || onBoardingDetail.permissionsGranted == false){
+            const merchantIdParam = urlParams.get("merchantId");
+            const merchantIdInPayPalParam = urlParams.get("merchantIdInPayPal");
+            console.log("merchantIdParam: ", merchantIdParam);
+            console.log("merchantIdInPayPalParam: ", merchantIdInPayPalParam);
+
+            if(merchantIdParam !== null && merchantIdInPayPalParam !== null){
+                await this.getFinalOnBoardDetailsFromUrl(token.access_token);
+                button.html("Paypal Connected!");
+            }
+            else{
+                const baseUrl = `${window.location.protocol}//${window.location.host}`;
+                const returnUrl = `${window.location}`;
+                const response = await this.partnerReferral(token.access_token, "EX12345", returnUrl, baseUrl);
+                button.attr("href", response.links[1].href);
+            }          
         } 
         else{
             //show different button
-            button.html("Connected!");
+            button.html("Paypal Connected!");
         }     
         
     }
@@ -61,9 +77,8 @@ class PayPalHandler{
 
         return await response.json();
     }
-    async partnerReferral(trackingId, returnUrl, baseUrl){
-        const token = await this.getAccessToken(this.clientId, this.secret);
-        console.log("token: ", token.access_token);
+    async partnerReferral(token, trackingId, returnUrl, baseUrl){
+        console.log("token: ", token);
 
         var obj = {
             "tracking_id": trackingId,
@@ -107,7 +122,7 @@ class PayPalHandler{
         const response = await fetch("https://api.sandbox.paypal.com/v2/customer/partner-referrals", {
             body: JSON.stringify(obj),
             headers: {
-                Authorization: `Bearer ${token.access_token}`,
+                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
             method: "POST"
@@ -157,22 +172,66 @@ class PayPalHandler{
 
 	    return obj;
     }
-    checkifSellerisAlreadyOnBoarded(){
-        return false;
+    async checkIfSellerIsAlreadyOnBoarded(sellerId){       
+        const details = await this.getOnBoardingDetails(sellerId);
+        console.log("details: ", details);
+        return details;
     }
-    getFinalOnBoardDetailsFromUrl(){
+    async getFinalOnBoardDetailsFromUrl(token){
+        const sellerId = this.btnConnectPayPal.data("userid");
         const params = this.getUrlParams(window.location.href);
-        console.log("params: "+ params);
-        console.log("params str: "+ JSON.stringify(params));
-    }  
-    saveOnBoardingDetails(obj){
-        //handle the saving login
+        //just to check if queries have been passed
+        if(params.permissionsgranted === "true"){
+            params.seller = sellerId;
+            const result = await this.saveOnBoardingDetails(JSON.stringify(params));
+            console.log("result: ", result);           
+            const verificationStatus = await this.trackSellerStatus(token, this.payPalPartnerMerchantId, params.merchantidinpaypal);
+            console.log("verificationStatus: ", verificationStatus);
+
+            const verificationStatusTracking = await this.trackSellerStatusUsingTracking(token, this.payPalPartnerMerchantId, params.merchantid);
+            console.log("verificationStatusTracking: ", verificationStatusTracking);
+        }       
     }
-    async trackSellerStatus(partner_merchant_id, seller_merchant_id){
-        const token = await this.getAccessToken(this.clientId, this.secret);
+    async getOnBoardingDetails(sellerId){
+        //handle getting onboarding details
+        const response = await fetch(`/dashboardPayPal/OnboardingDetail/${sellerId}`, {
+            headers: {
+                "Content-Type": "application/json"
+            },
+            method: "Get"
+        });
+
+        return await response.json();
+    } 
+    async saveOnBoardingDetails(obj){
+        //handle saving onboarding saving login
+        const response = await fetch("/dashboardPayPal/saveOnboarding", {
+            body: obj,
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: "POST"
+        });
+
+        return await response.json();
+    }
+    async trackSellerStatus(token, partner_merchant_id, seller_merchant_id){
+        //tokens can be called once and injected as you wish
+        
         const response = await fetch(`https://api.sandbox.paypal.com/v1/customer/partners/${partner_merchant_id}/merchant-integrations/${seller_merchant_id}`, {
             headers: {
-              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            method: "GET"
+        });
+
+        return await response.json();
+    }
+    async trackSellerStatusUsingTracking(token, partner_merchant_id, tracking_id){
+        const response = await fetch(`https://api.sandbox.paypal.com/v1/customer/partners/${partner_merchant_id}/merchant-integrations?tracking_id=${tracking_id}`, {
+            headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json"
             },
@@ -182,7 +241,6 @@ class PayPalHandler{
         return await response.json();
     }
 }
-
 
 var paypalHandler = new PayPalHandler();
 paypalHandler.init();
