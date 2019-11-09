@@ -55,6 +55,13 @@ class PayPalHandler{
         else{
             //show different button
             button.html("Paypal Connected!");
+            const verificationStatusTracking = await this.trackSellerStatusUsingTracking(token.access_token, this.payPalPartnerMerchantId, onBoardingDetail.merchantId);
+            console.log("verificationStatusTracking: ", verificationStatusTracking);
+
+            const verificationStatus = await this.trackSellerStatus(token.access_token, this.payPalPartnerMerchantId, onBoardingDetail.merchantIdInPayPal);
+            console.log("verificationStatus: ", verificationStatus);
+
+   
         }     
         
     }

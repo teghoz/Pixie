@@ -63,11 +63,11 @@ router.post('/Onboarding:id', function(req, res, next) {
 router.post('/saveOnboarding', function(req, res, next) {
   console.log('save onboarding');
 
-  UserOnBoardingDetail.update(
-    { _seller: req.body.seller },
+  UserOnBoardingDetail.updateOne(
+    { seller: req.body.seller },
     { 
       merchantId: req.body.merchantid,
-      merchantIdInPayPal: req.body.merchantid,
+      merchantIdInPayPal: req.body.merchantidinpaypal,
       permissionsGranted: req.body.permissionsgranted,
       accountStatus: req.body.accountstatus,
       consentStatus: req.body.consentstatus,
@@ -75,7 +75,8 @@ router.post('/saveOnboarding', function(req, res, next) {
       isEmailConfirmed: req.body.isemailconfirmed,
       returnMessage: req.body.returnmessage,
       seller: req.body.seller
-    },  function(err, userOnBoardingDetail) {
+    },
+    { upsert : true },  function(err, userOnBoardingDetail) {
           console.log("userOnBoardingDetail: ", userOnBoardingDetail);
           if (err) return next(err);
             return res.send('1');
