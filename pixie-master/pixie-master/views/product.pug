@@ -4,6 +4,7 @@ block head
   head
     title Pixie - Product Detail
     link(rel='stylesheet' href='/assets/css/flex-slider.css')
+    script(src=src="https://www.paypal.com/sdk/js?client-id=AUwU6WMN2a0ht5sLrUSkeSI0dSWnM4m11ERLZrBR0SXXYc44sOxwGOFH3mcU3D2F0mNNG4Oh5ytdTf1q&merchant-id=8GH2ZZ7FH4J78&currency=USD&intent=capture" data-partner-attribution-id="BN-12345")
 
 block content
   // Pre Header
@@ -49,8 +50,9 @@ block content
             span #{listing.quantity} left on stock
             form(action='' method='get')
               label(for='quantity') Quantity:
-              input#quantity.quantity-text(name='quantity' type='quantity' onfocus="if(this.value == '1') { this.value = ''; }" onblur="if(this.value == '') { this.value = '1';}" value='1')
-              input.button(type='submit' value='Order Now!')
+              input#quantity.quantity-text(name='quantity' type='quantity' data-productid=listing._id data-seller=listing.seller onfocus="if(this.value == '1') { this.value = ''; }" onblur="if(this.value == '') { this.value = '1';}" value='1')
+              //input.button(type='submit' value='Order Now!')
+              div(id="paypal-button-container" data-price=listing.amount)
             .down-content
               .categories
                 h6
@@ -67,6 +69,7 @@ block content
   script(src='/assets/js/owl.js')
   script(src='/assets/js/isotope.js')
   script(src='/assets/js/flex-slider.js')
+  script(src='/assets/js/paypalCheckout.js')
   script(language='text/Javascript').
     cleared[0] = cleared[1] = cleared[2] = 0; //set a cleared flag for each field
     function clearField(t){                   //declaring the array outside of the

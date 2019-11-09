@@ -11,8 +11,10 @@ var LocalStrategy = require('passport-local').Strategy;
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var productsRouter = require('./routes/products');
+var dashboardRouter = require('./routes/dashboardPayPal');
 
 var User = require('./models/user');
+var Order = require('./models/orders');
 
 // Set up default mongoose connection
 mongoose.set('useCreateIndex', true);
@@ -44,6 +46,8 @@ app.use(passport.session());
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/products', productsRouter);
+app.use('/dashboardPayPal', dashboardRouter);
+
 
 passport.use(new LocalStrategy({
     usernameField: 'email'
