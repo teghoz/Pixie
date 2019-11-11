@@ -64,15 +64,13 @@ const initPayPal = (token, payload) => {
             },
             method: "POST"
         })
-        .then((res) => {
-            return res.json();
-          })
-        .then((res) => {
-            console.log("res: ", res);
+        .then((res) => {           
           if (!res.ok) {
             alert('Something went wrong');
           }
           else{
+              console.log("res: ", res);
+              alert(`Checkout Complete: Check console for response object`);
               createOrderRecord();
           }
         });
